@@ -7,28 +7,38 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet"/>
 <style>
   :root {
-    --blue:   #0068B3;
-    --green:  #009C62;
-    --yellow: #F4C300;
-    --dark:   #004A80;
-    --ink:    #0d1f2d;
-    --muted:  #64748b;
-    --surface:#f0f4f8;
-    --card:   #ffffff;
-    --border: #e2e8f0;
+    --blue:    #0068B3;
+    --green:   #009C62;
+    --yellow:  #F4C300;
+    --dark:    #004A80;
+    --ink:     #0c1a27;
+    --ink2:    #1e3448;
+    --muted:   #6b7e93;
+    --surface: #f1f5f9;
+    --card:    #ffffff;
+    --border:  #e1e9f0;
+
+    /* Type scale */
+    --font-body:    'Lato', sans-serif;
+    --font-display: 'Lato', sans-serif;
+    --font-mono:    'Lato', sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Barlow', sans-serif;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
     background: var(--surface);
     color: var(--ink);
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
-  .mono  { font-family: 'DM Mono', monospace; }
-  .cond  { font-family: 'Barlow Condensed', sans-serif; }
+  .mono { font-family: var(--font-mono); }
+  .cond { font-family: var(--font-display); }
 
   /* Sidebar */
   .sidebar {
@@ -44,15 +54,15 @@
   }
   .nav-item {
     display: flex; align-items: center; gap: 10px;
-    padding: 12px 20px; cursor: pointer;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 13px; letter-spacing: .08em;
-    text-transform: uppercase; color: rgba(255,255,255,.5);
-    transition: all .2s; border-left: 3px solid transparent;
+    padding: 11px 20px; cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 12.5px; letter-spacing: .01em;
+    color: rgba(255,255,255,.48);
+    transition: all .18s; border-left: 3px solid transparent;
     user-select: none;
   }
-  .nav-item:hover  { color: #fff; background: rgba(255,255,255,.05); }
-  .nav-item.active { color: #fff; border-left-color: var(--yellow); background: rgba(244,195,0,.08); }
+  .nav-item:hover  { color: #fff; background: rgba(255,255,255,.06); }
+  .nav-item.active { color: #fff; border-left-color: var(--yellow); background: rgba(244,195,0,.09); }
   .nav-icon { font-size: 16px; width: 20px; text-align: center; }
 
   /* Main */
@@ -68,39 +78,38 @@
 
   /* KPI */
   .kpi-value {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900; font-size: 36px; line-height: 1;
-    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 34px; line-height: 1;
+    color: var(--ink); letter-spacing: -.02em;
   }
   .kpi-label {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 10px; letter-spacing: .1em;
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 11px; letter-spacing: .04em;
     text-transform: uppercase; color: var(--muted);
-    margin-top: 4px;
+    margin-top: 5px;
   }
   .kpi-delta {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px; margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 10.5px; margin-top: 5px; color: var(--muted);
   }
 
   /* Badges */
   .badge {
     display: inline-flex; align-items: center;
-    padding: 3px 10px; border-radius: 999px;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 11px; letter-spacing: .06em;
-    text-transform: uppercase;
+    padding: 2px 9px; border-radius: 6px;
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 11px; letter-spacing: .02em;
   }
-  .badge-ok    { background: #dcfce7; color: #166534; }
-  .badge-warn  { background: #fef9c3; color: #854d0e; }
-  .badge-alert { background: #fee2e2; color: #991b1b; }
-  .badge-blue  { background: #dbeafe; color: #1e40af; }
+  .badge-ok    { background: #dcfce7; color: #15803d; }
+  .badge-warn  { background: #fef9c3; color: #92400e; }
+  .badge-alert { background: #fee2e2; color: #b91c1c; }
+  .badge-blue  { background: #dbeafe; color: #1d4ed8; }
 
   /* Table */
   table { width: 100%; border-collapse: collapse; }
   thead th {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 800; font-size: 10px; letter-spacing: .12em;
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 10.5px; letter-spacing: .06em;
     text-transform: uppercase; color: var(--muted);
     padding: 10px 14px; text-align: left;
     border-bottom: 2px solid var(--border);
@@ -111,45 +120,48 @@
     transition: background .15s;
   }
   tbody tr:hover { background: #f8fafc; }
-  tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
+  tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; color: var(--ink2); }
 
   /* Section title */
   .section-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900; font-size: 22px; letter-spacing: -.01em;
-    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 24px; letter-spacing: -.03em;
+    color: var(--ink); line-height: 1.1;
   }
   .section-sub {
-    font-size: 12px; color: var(--muted); margin-top: 2px;
+    font-family: var(--font-body);
+    font-size: 13px; color: var(--muted); margin-top: 3px;
+    font-weight: 400;
   }
 
   /* Inputs */
   .inp {
-    border: 1.5px solid var(--border); border-radius: 10px;
-    padding: 9px 14px; font-size: 13px; font-family: 'Barlow', sans-serif;
+    border: 1.5px solid var(--border); border-radius: 9px;
+    padding: 8px 13px; font-size: 13px; font-family: var(--font-body);
+    font-weight: 500;
     background: white; color: var(--ink); outline: none;
-    transition: border-color .2s;
+    transition: border-color .18s, box-shadow .18s;
   }
-  .inp:focus { border-color: var(--blue); }
+  .inp:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,104,179,.1); }
   select.inp { cursor: pointer; }
 
   /* Buttons */
   .btn {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 13px; letter-spacing: .06em;
-    text-transform: uppercase; transition: all .2s;
+    padding: 8px 17px; border-radius: 9px; border: none; cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 13px; letter-spacing: .01em;
+    transition: all .18s;
   }
   .btn-primary { background: var(--blue); color: white; }
-  .btn-primary:hover { background: var(--dark); }
+  .btn-primary:hover { background: var(--dark); box-shadow: 0 3px 10px rgba(0,104,179,.25); }
   .btn-ghost { background: white; color: var(--ink); border: 1.5px solid var(--border); }
   .btn-ghost:hover { background: var(--surface); }
   .btn-green { background: var(--green); color: white; }
-  .btn-green:hover { opacity: .88; }
+  .btn-green:hover { opacity: .88; box-shadow: 0 3px 10px rgba(0,156,98,.25); }
   .btn-yellow { background: var(--yellow); color: var(--ink); }
   .btn-yellow:hover { opacity: .88; }
-  .btn-sm { padding: 6px 12px; font-size: 11px; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
 
   /* Separator */
   .sep { height: 1px; background: var(--border); margin: 20px 0; }
@@ -195,11 +207,11 @@
 
   /* Tag pills for module filter */
   .pill {
-    padding: 5px 14px; border-radius: 999px; cursor: pointer;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700; font-size: 11px; letter-spacing: .08em;
-    text-transform: uppercase; border: 1.5px solid var(--border);
-    background: white; color: var(--muted); transition: all .2s;
+    padding: 5px 14px; border-radius: 7px; cursor: pointer;
+    font-family: var(--font-body);
+    font-weight: 600; font-size: 12px; letter-spacing: .01em;
+    border: 1.5px solid var(--border);
+    background: white; color: var(--muted); transition: all .18s;
     user-select: none;
   }
   .pill.active { background: var(--blue); color: white; border-color: var(--blue); }
@@ -226,11 +238,11 @@
   <div class="sidebar-logo">
     <div style="display:flex;align-items:center;gap:10px">
       <div style="width:36px;height:36px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;color:white;font-size:14px">RS</span>
+        <span style="font-family:'Lato',sans-serif;font-weight:900;color:white;font-size:14px">RS</span>
       </div>
       <div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;color:white;font-size:16px;letter-spacing:-.01em">RondaSync</div>
-        <div style="font-size:9px;color:var(--yellow);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.15em;text-transform:uppercase">Históricos</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;color:white;font-size:17px;letter-spacing:-.02em">RondaSync</div>
+        <div style="font-size:10px;color:var(--yellow);font-family:'Lato',sans-serif;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-top:1px">Históricos</div>
       </div>
     </div>
   </div>
@@ -260,9 +272,9 @@
   </div>
 
   <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)">
-    <div style="font-size:10px;color:rgba(255,255,255,.3);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Conectado como</div>
-    <div id="userLabel" style="font-size:12px;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace">supervisor</div>
-    <button onclick="handleLogout()" style="margin-top:10px;width:100%;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">Cerrar Sesión</button>
+    <div style="font-size:10px;color:rgba(255,255,255,.3);font-family:'Lato',sans-serif;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">Conectado como</div>
+    <div id="userLabel" style="font-size:12px;color:rgba(255,255,255,.7);font-family:'Lato',sans-serif">supervisor</div>
+    <button onclick="handleLogout()" style="margin-top:10px;width:100%;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px;font-family:'Lato',sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">Cerrar Sesión</button>
   </div>
 </nav>
 
@@ -274,18 +286,18 @@
     <div class="card fade-up" style="width:100%;max-width:400px;border-top:6px solid var(--blue)">
       <div style="text-align:center;margin-bottom:28px">
         <div style="width:52px;height:52px;background:var(--blue);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
-          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;color:white;font-size:20px">RS</span>
+          <span style="font-family:'Lato',sans-serif;font-weight:900;color:white;font-size:20px">RS</span>
         </div>
         <div class="section-title">Históricos</div>
         <div class="section-sub">PTAS Talagante — Acceso Supervisores</div>
       </div>
       <div id="loginError" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:16px;text-align:center"></div>
       <div style="margin-bottom:14px">
-        <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Correo</label>
+        <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Correo</label>
         <input type="email" id="loginEmail" class="inp" style="width:100%" placeholder="supervisor@aguasandinas.cl"/>
       </div>
       <div style="margin-bottom:20px">
-        <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Contraseña</label>
+        <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Contraseña</label>
         <input type="password" id="loginPassword" class="inp" style="width:100%" placeholder="••••••••"/>
       </div>
       <button onclick="doLogin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" id="loginBtn">Ingresar al Sistema</button>
@@ -320,7 +332,7 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px">Nivel Gasómetro & Presión Digestor</div>
+            <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px">Nivel Gasómetro & Presión Digestor</div>
             <div style="font-size:11px;color:var(--muted)">Evolución por turno</div>
           </div>
           <select class="inp" style="font-size:11px;padding:6px 10px" id="chart1Range" onchange="loadDashboard()">
@@ -332,7 +344,7 @@
         <div class="chart-wrap" style="height:220px"><canvas id="chartGasometro"></canvas></div>
       </div>
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Módulos por Estado</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Módulos por Estado</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Distribución de condición registrada</div>
         <div class="chart-wrap" style="height:220px"><canvas id="chartEstados"></canvas></div>
       </div>
@@ -341,12 +353,12 @@
     <!-- Charts row 2 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Temperatura Lodos (Área 60)</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Temperatura Lodos (Área 60)</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px">T° entrada vs salida — Rango óptimo sombreado</div>
         <div class="chart-wrap" style="height:200px"><canvas id="chartTemp"></canvas></div>
       </div>
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Anomalías por Módulo</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Anomalías por Módulo</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Frecuencia en el periodo</div>
         <div class="chart-wrap" style="height:200px"><canvas id="chartAnomalias"></canvas></div>
       </div>
@@ -354,7 +366,7 @@
 
     <!-- Tabla resumen reciente -->
     <div class="card">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Últimos Turnos Registrados</div>
+      <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Últimos Turnos Registrados</div>
       <div class="scroll-x">
         <table id="tablaDashboard">
           <thead><tr>
@@ -379,31 +391,31 @@
     <div class="card no-print" style="margin-bottom:16px">
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
         <div>
-          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Desde</label>
+          <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Desde</label>
           <input type="date" id="h-from" class="inp" style="width:100%"/>
         </div>
         <div>
-          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Hasta</label>
+          <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Hasta</label>
           <input type="date" id="h-to" class="inp" style="width:100%"/>
         </div>
         <div>
-          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Operador</label>
+          <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Operador</label>
           <select id="h-oper" class="inp" style="width:100%"><option value="">Todos</option></select>
         </div>
         <div>
-          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Turno</label>
+          <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Turno</label>
           <select id="h-tipo" class="inp" style="width:100%">
             <option value="">Todos</option><option value="Día">Día</option><option value="Noche">Noche</option>
           </select>
         </div>
         <div>
-          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Con alertas</label>
+          <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Con alertas</label>
           <select id="h-alert" class="inp" style="width:100%">
             <option value="">Todos</option><option value="si">Solo con alertas</option><option value="no">Sin alertas</option>
           </select>
         </div>
         <div>
-          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Búsqueda</label>
+          <label style="display:block;font-family:'Lato',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Búsqueda</label>
           <input type="text" id="h-search" class="inp" style="width:100%" placeholder="Texto libre..."/>
         </div>
         <div style="display:flex;gap:8px">
@@ -415,7 +427,7 @@
 
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-        <div id="h-resultCount" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--muted)">— resultados</div>
+        <div id="h-resultCount" style="font-family:'Lato',sans-serif;font-weight:700;font-size:13px;color:var(--muted)">— resultados</div>
         <div style="display:flex;gap:8px" class="no-print">
           <button onclick="exportarCSV()" class="btn btn-ghost btn-sm">📥 CSV</button>
           <button onclick="exportarExcel()" class="btn btn-green btn-sm">📊 Excel</button>
@@ -465,17 +477,17 @@
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Evolución de Estado</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Evolución de Estado</div>
         <div class="chart-wrap" style="height:200px"><canvas id="chartModuloEstado"></canvas></div>
       </div>
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Fallas más Frecuentes</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Fallas más Frecuentes</div>
         <div class="chart-wrap" style="height:200px"><canvas id="chartModuloFallas"></canvas></div>
       </div>
     </div>
 
     <div class="card">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Registros del Módulo</div>
+      <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Registros del Módulo</div>
       <div class="scroll-x">
         <table>
           <thead><tr><th>Fecha</th><th>Turno</th><th>Operador</th><th>Estado Ppal.</th><th>Observación</th><th>Fotos</th></tr></thead>
@@ -528,7 +540,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:16px" id="medKpis"></div>
 
     <div class="card">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Valores Registrados</div>
+      <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Valores Registrados</div>
       <div class="scroll-x">
         <table>
           <thead><tr><th>Fecha</th><th>Turno</th><th>Operador</th><th>Valor</th><th>Estado</th></tr></thead>
@@ -573,17 +585,17 @@
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Alertas por Módulo</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Alertas por Módulo</div>
         <div class="chart-wrap" style="height:200px"><canvas id="chartAlertaModulo"></canvas></div>
       </div>
       <div class="card">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Tendencia Diaria</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Tendencia Diaria</div>
         <div class="chart-wrap" style="height:200px"><canvas id="chartAlertaTrend"></canvas></div>
       </div>
     </div>
 
     <div class="card">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Log de Alertas</div>
+      <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Log de Alertas</div>
       <div class="scroll-x">
         <table>
           <thead><tr><th>Fecha</th><th>Turno</th><th>Módulo</th><th>Tipo de Alerta</th><th>Valor Registrado</th><th>Operador</th><th>Observación</th></tr></thead>
@@ -614,7 +626,7 @@
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Comparativa de Operadores</div>
+      <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Comparativa de Operadores</div>
       <div class="chart-wrap" style="height:240px"><canvas id="chartOperadores"></canvas></div>
     </div>
   </section>
@@ -631,11 +643,11 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
       <!-- Reporte por módulo -->
       <div class="card" style="border-top:4px solid var(--blue)">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">📊 Por Módulo / Equipo</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">📊 Por Módulo / Equipo</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Historial completo de inspecciones con estados, fallas y observaciones</div>
         <div style="display:grid;gap:10px">
           <div>
-            <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Módulo</label>
+            <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Módulo</label>
             <select class="inp" style="width:100%" id="rep-mod">
               <option value="todos">Todos</option>
               <option value="gasometro">Gasómetro</option>
@@ -649,11 +661,11 @@
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
               <input type="date" id="rep-mod-from" class="inp" style="width:100%"/>
             </div>
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
               <input type="date" id="rep-mod-to" class="inp" style="width:100%"/>
             </div>
           </div>
@@ -667,16 +679,16 @@
 
       <!-- Reporte alertas -->
       <div class="card" style="border-top:4px solid #dc2626">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">🚨 Alertas y Anomalías</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">🚨 Alertas y Anomalías</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Log completo de eventos fuera de rango con contexto operacional</div>
         <div style="display:grid;gap:10px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
               <input type="date" id="rep-al-from" class="inp" style="width:100%"/>
             </div>
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
               <input type="date" id="rep-al-to" class="inp" style="width:100%"/>
             </div>
           </div>
@@ -690,11 +702,11 @@
 
       <!-- Reporte medidor -->
       <div class="card" style="border-top:4px solid var(--green)">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">📈 Por Medidor</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">📈 Por Medidor</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Serie temporal de una variable con estadísticas y percentiles</div>
         <div style="display:grid;gap:10px">
           <div>
-            <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Variable</label>
+            <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Variable</label>
             <select class="inp" style="width:100%" id="rep-med">
               <option value="scada_nivel_gasometro">Nivel Gasómetro</option>
               <option value="scada_dig_temp_c">T° Digestor</option>
@@ -706,11 +718,11 @@
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
               <input type="date" id="rep-med-from" class="inp" style="width:100%"/>
             </div>
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
               <input type="date" id="rep-med-to" class="inp" style="width:100%"/>
             </div>
           </div>
@@ -724,20 +736,20 @@
 
       <!-- Reporte operador -->
       <div class="card" style="border-top:4px solid var(--yellow)">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">👤 Por Operador</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">👤 Por Operador</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Turnos realizados, anomalías reportadas y métricas de completitud</div>
         <div style="display:grid;gap:10px">
           <div>
-            <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Operador</label>
+            <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Operador</label>
             <select class="inp" style="width:100%" id="rep-op"><option value="">Todos</option></select>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
               <input type="date" id="rep-op-from" class="inp" style="width:100%"/>
             </div>
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
               <input type="date" id="rep-op-to" class="inp" style="width:100%"/>
             </div>
           </div>
@@ -751,16 +763,16 @@
 
       <!-- Comparativa día/noche -->
       <div class="card" style="border-top:4px solid #7c3aed">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">🌓 Comparativa Día / Noche</div>
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">🌓 Comparativa Día / Noche</div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Diferencias estadísticas entre turnos de día y noche en cualquier medidor</div>
         <div style="display:grid;gap:10px">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
               <input type="date" id="rep-dn-from" class="inp" style="width:100%"/>
             </div>
             <div>
-              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
               <input type="date" id="rep-dn-to" class="inp" style="width:100%"/>
             </div>
           </div>
@@ -776,12 +788,12 @@
     <!-- Modal email -->
     <div id="emailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center">
       <div class="card fade-up" style="width:100%;max-width:440px">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;margin-bottom:16px">✉️ Enviar Reporte por Correo</div>
-        <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Destinatarios (separar con coma)</label>
+        <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:18px;margin-bottom:16px">✉️ Enviar Reporte por Correo</div>
+        <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Destinatarios (separar con coma)</label>
         <input type="text" id="emailDest" class="inp" style="width:100%;margin-bottom:12px" placeholder="jefe@aguasandinas.cl, mantto@aguasandinas.cl"/>
-        <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Asunto</label>
+        <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Asunto</label>
         <input type="text" id="emailSubject" class="inp" style="width:100%;margin-bottom:12px" value="Reporte RondaSync — PTAS Talagante"/>
-        <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Nota adicional</label>
+        <label style="font-size:10px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Nota adicional</label>
         <textarea class="inp" style="width:100%;height:80px;resize:none;margin-bottom:16px" id="emailNota" placeholder="Opcional..."></textarea>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button onclick="cerrarEmailModal()" class="btn btn-ghost">Cancelar</button>
@@ -921,7 +933,7 @@ function mkChart(id, config) {
   return chartInstances[id];
 }
 
-const baseFont = { family: "'Barlow', sans-serif", size: 11 };
+const baseFont = { family: "'Lato', sans-serif", size: 11, weight: '500' };
 const gridColor = '#e2e8f0';
 
 // ══════════════════════════════════════════
@@ -1066,7 +1078,7 @@ function renderDashboardCharts(turnos) {
       ]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:baseFont,boxWidth:12}}}, scales:{
-      x: { ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45}, grid:{color:gridColor} },
+      x: { ticks:{font:{family:"'Lato'",size:9},maxRotation:45}, grid:{color:gridColor} },
       y: { ticks:{font:baseFont}, grid:{color:gridColor}, title:{display:true,text:'%',font:baseFont} },
       y2: { position:'right', ticks:{font:baseFont}, grid:{display:false} },
     }}
@@ -1101,7 +1113,7 @@ function renderDashboardCharts(turnos) {
       plugins:{ legend:{labels:{font:baseFont,boxWidth:12}},
         annotation: { annotations: { band: { type:'box', yMin:34, yMax:35.5, backgroundColor:'rgba(0,156,98,.08)', borderColor:'rgba(0,156,98,.3)', label:{display:true,content:'Rango óptimo',font:{size:9}} } } }
       },
-      scales:{ x:{ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45},grid:{color:gridColor}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} }
+      scales:{ x:{ticks:{font:{family:"'Lato'",size:9},maxRotation:45},grid:{color:gridColor}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} }
     }
   });
 
@@ -1303,7 +1315,7 @@ function loadMedidor() {
         { label: 'Límite Inferior', data: Array(data.length).fill(lim.min), borderColor: COLORS.amber+'80', borderDash:[6,3], pointRadius:0, fill:false, tension:0 },
       ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:baseFont,boxWidth:12}}}, scales:{ x:{ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45},grid:{color:gridColor}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} } }
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:baseFont,boxWidth:12}}}, scales:{ x:{ticks:{font:{family:"'Lato'",size:9},maxRotation:45},grid:{color:gridColor}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} } }
   });
 
   document.getElementById('tbodyMedidor').innerHTML = data.map(r => {
@@ -1370,7 +1382,7 @@ function loadAlertas() {
   mkChart('chartAlertaTrend',{
     type:'bar',
     data:{ labels:sortedDates, datasets:[{label:'Alertas',data:sortedDates.map(d=>byDate[d]),backgroundColor:COLORS.red+'aa',borderRadius:4}] },
-    options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45}},y:{ticks:{font:baseFont},grid:{color:gridColor}}} }
+    options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:"'Lato'",size:9},maxRotation:45}},y:{ticks:{font:baseFont},grid:{color:gridColor}}} }
   });
 
   document.getElementById('tbodyAlertas').innerHTML = alertList.map(a=>`
@@ -1401,23 +1413,23 @@ function loadOperadores() {
     <div class="card" style="border-top:4px solid var(--blue)">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px">${s.op.split('@')[0]}</div>
+          <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:17px">${s.op.split('@')[0]}</div>
           <div style="font-size:11px;color:var(--muted)">${s.op}</div>
         </div>
         <span class="badge ${s.cumplimiento>=90?'badge-ok':s.cumplimiento>=75?'badge-warn':'badge-alert'}">${s.cumplimiento}%</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
         <div style="text-align:center;background:var(--surface);padding:8px;border-radius:8px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:var(--blue)">${s.turnos}</div>
-          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Turnos</div>
+          <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:20px;color:var(--blue)">${s.turnos}</div>
+          <div style="font-size:9px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Turnos</div>
         </div>
         <div style="text-align:center;background:var(--surface);padding:8px;border-radius:8px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:${s.alertas>5?COLORS.red:COLORS.amber}">${s.alertas}</div>
-          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Alertas</div>
+          <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:20px;color:${s.alertas>5?COLORS.red:COLORS.amber}">${s.alertas}</div>
+          <div style="font-size:9px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Alertas</div>
         </div>
         <div style="text-align:center;background:var(--surface);padding:8px;border-radius:8px">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:var(--green)">${s.completitud}%</div>
-          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Completitud</div>
+          <div style="font-family:'Lato',sans-serif;font-weight:900;font-size:20px;color:var(--green)">${s.completitud}%</div>
+          <div style="font-size:9px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Completitud</div>
         </div>
       </div>
       <div style="background:var(--surface);border-radius:6px;height:6px;overflow:hidden">
@@ -1524,16 +1536,16 @@ function verDetalle(id) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       ${Object.entries({ 'Operador':t.operador_nombre, 'Tipo':t.tipo_turno, 'Inicio':t.created_at?.split('T').join(' ')?.slice(0,16), 'Fin':t.hora_fin?.split('T').join(' ')?.slice(0,16)||'—', 'Cerrado':t.turno_cerrado?'Sí':'No', 'Alertas':t.alertas||0 }).map(([k,v])=>`
         <div style="background:var(--surface);padding:10px 12px;border-radius:10px">
-          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">${k}</div>
+          <div style="font-size:9px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">${k}</div>
           <div style="font-size:13px;font-weight:600">${v??'—'}</div>
         </div>`).join('')}
     </div>
     <div class="sep"></div>
-    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px">Datos SCADA</div>
+    <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px">Datos SCADA</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
       ${[['Nivel Gas.', t.scada_nivel_gasometro, '%'], ['Pres. Gas.', t.scada_presion_mbar, 'mb'], ['T° Dig.', t.scada_dig_temp_c, '°C'], ['Pres. Dig.', t.scada_dig_presion_mbar, 'mb'], ['Flujo Biogás', t.scada_flujo_biogas_nm3h, 'Nm³/h'], ['Flujo Comp.', t.scada_flujo_biogas_nm3h, '']].map(([l,v,u])=>`
         <div style="background:var(--surface);padding:8px;border-radius:8px;text-align:center">
-          <div style="font-size:9px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase">${l}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'Lato',sans-serif;font-weight:700;text-transform:uppercase">${l}</div>
           <div class="mono" style="font-size:14px;font-weight:600;margin-top:2px">${v??'—'}${v&&u?' '+u:''}</div>
         </div>`).join('')}
     </div>`;
