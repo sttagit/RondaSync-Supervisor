@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RondaSync · Históricos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --blue:   #0068B3;
+    --green:  #009C62;
+    --yellow: #F4C300;
+    --dark:   #004A80;
+    --ink:    #0d1f2d;
+    --muted:  #64748b;
+    --surface:#f0f4f8;
+    --card:   #ffffff;
+    --border: #e2e8f0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .mono  { font-family: 'DM Mono', monospace; }
+  .cond  { font-family: 'Barlow Condensed', sans-serif; }
+
+  /* Sidebar */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 220px; background: var(--ink);
+    display: flex; flex-direction: column;
+    z-index: 40; padding: 0;
+    transition: transform .3s ease;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 20px; cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 13px; letter-spacing: .08em;
+    text-transform: uppercase; color: rgba(255,255,255,.5);
+    transition: all .2s; border-left: 3px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover  { color: #fff; background: rgba(255,255,255,.05); }
+  .nav-item.active { color: #fff; border-left-color: var(--yellow); background: rgba(244,195,0,.08); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* Main */
+  .main { margin-left: 220px; padding: 28px; min-height: 100vh; }
+
+  /* Cards */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .card-sm { padding: 18px; }
+
+  /* KPI */
+  .kpi-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900; font-size: 36px; line-height: 1;
+    color: var(--ink);
+  }
+  .kpi-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    margin-top: 4px;
+  }
+  .kpi-delta {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; margin-top: 6px;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 999px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 11px; letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .badge-ok    { background: #dcfce7; color: #166534; }
+  .badge-warn  { background: #fef9c3; color: #854d0e; }
+  .badge-alert { background: #fee2e2; color: #991b1b; }
+  .badge-blue  { background: #dbeafe; color: #1e40af; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 10px 14px; text-align: left;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface);
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  tbody tr:hover { background: #f8fafc; }
+  tbody td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
+
+  /* Section title */
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900; font-size: 22px; letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  .section-sub {
+    font-size: 12px; color: var(--muted); margin-top: 2px;
+  }
+
+  /* Inputs */
+  .inp {
+    border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 9px 14px; font-size: 13px; font-family: 'Barlow', sans-serif;
+    background: white; color: var(--ink); outline: none;
+    transition: border-color .2s;
+  }
+  .inp:focus { border-color: var(--blue); }
+  select.inp { cursor: pointer; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px; border-radius: 10px; border: none; cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 13px; letter-spacing: .06em;
+    text-transform: uppercase; transition: all .2s;
+  }
+  .btn-primary { background: var(--blue); color: white; }
+  .btn-primary:hover { background: var(--dark); }
+  .btn-ghost { background: white; color: var(--ink); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { background: var(--surface); }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { opacity: .88; }
+  .btn-yellow { background: var(--yellow); color: var(--ink); }
+  .btn-yellow:hover { opacity: .88; }
+  .btn-sm { padding: 6px 12px; font-size: 11px; }
+
+  /* Separator */
+  .sep { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* Scroll */
+  .scroll-x { overflow-x: auto; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+  /* Animations */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .fade-up { animation: fadeUp .3s ease both; }
+
+  /* Trend sparkline indicator */
+  .trend-up   { color: #16a34a; }
+  .trend-down { color: #dc2626; }
+  .trend-flat { color: var(--muted); }
+
+  /* Chart container */
+  .chart-wrap { position: relative; }
+
+  /* Mobile sidebar toggle */
+  .mob-toggle {
+    display: none; position: fixed; top: 16px; left: 16px;
+    z-index: 50; background: var(--ink); color: white;
+    border: none; border-radius: 10px; padding: 10px 12px;
+    cursor: pointer; font-size: 18px;
+  }
+  @media(max-width:768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 16px; padding-top: 60px; }
+    .mob-toggle { display: block; }
+  }
+
+  /* Print */
+  @media print {
+    .sidebar, .mob-toggle, .no-print { display: none !important; }
+    .main { margin-left: 0; padding: 0; }
+    .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+  }
+
+  /* Tag pills for module filter */
+  .pill {
+    padding: 5px 14px; border-radius: 999px; cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; border: 1.5px solid var(--border);
+    background: white; color: var(--muted); transition: all .2s;
+    user-select: none;
+  }
+  .pill.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+  /* Alert row highlight */
+  .row-alert td { background: #fff5f5 !important; }
+  .row-alert:hover td { background: #fee2e2 !important; }
+
+  /* Loading skeleton */
+  .skel {
+    background: linear-gradient(90deg, #f0f4f8 25%, #e2e8f0 50%, #f0f4f8 75%);
+    background-size: 400% 100%; border-radius: 8px;
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer { 0%{background-position:100% 50%} 100%{background-position:0% 50%} }
+</style>
+</head>
+<body>
+
+<button class="mob-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:36px;height:36px;background:var(--blue);border-radius:10px;display:flex;align-items:center;justify-content:center">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;color:white;font-size:14px">RS</span>
+      </div>
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;color:white;font-size:16px;letter-spacing:-.01em">RondaSync</div>
+        <div style="font-size:9px;color:var(--yellow);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.15em;text-transform:uppercase">Históricos</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:16px 0;flex:1">
+    <div class="nav-item active" onclick="showSection('dashboard')">
+      <span class="nav-icon">📊</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showSection('historicos')">
+      <span class="nav-icon">🔍</span> Buscador
+    </div>
+    <div class="nav-item" onclick="showSection('modulos')">
+      <span class="nav-icon">⚙️</span> Por Módulo
+    </div>
+    <div class="nav-item" onclick="showSection('medidores')">
+      <span class="nav-icon">📈</span> Medidores
+    </div>
+    <div class="nav-item" onclick="showSection('alertas')">
+      <span class="nav-icon">🚨</span> Alertas
+    </div>
+    <div class="nav-item" onclick="showSection('operadores')">
+      <span class="nav-icon">👤</span> Operadores
+    </div>
+    <div class="nav-item" onclick="showSection('reportes')">
+      <span class="nav-icon">📄</span> Reportes
+    </div>
+  </div>
+
+  <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)">
+    <div style="font-size:10px;color:rgba(255,255,255,.3);font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px">Conectado como</div>
+    <div id="userLabel" style="font-size:12px;color:rgba(255,255,255,.7);font-family:'DM Mono',monospace">supervisor</div>
+    <button onclick="handleLogout()" style="margin-top:10px;width:100%;background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">Cerrar Sesión</button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main" id="mainContent">
+
+  <!-- LOGIN OVERLAY -->
+  <div id="loginOverlay" style="position:fixed;inset:0;background:var(--surface);z-index:100;display:flex;align-items:center;justify-content:center;margin-left:0!important">
+    <div class="card fade-up" style="width:100%;max-width:400px;border-top:6px solid var(--blue)">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="width:52px;height:52px;background:var(--blue);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-weight:900;color:white;font-size:20px">RS</span>
+        </div>
+        <div class="section-title">Históricos</div>
+        <div class="section-sub">PTAS Talagante — Acceso Supervisores</div>
+      </div>
+      <div id="loginError" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:10px;font-size:12px;font-weight:600;margin-bottom:16px;text-align:center"></div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Correo</label>
+        <input type="email" id="loginEmail" class="inp" style="width:100%" placeholder="supervisor@aguasandinas.cl"/>
+      </div>
+      <div style="margin-bottom:20px">
+        <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Contraseña</label>
+        <input type="password" id="loginPassword" class="inp" style="width:100%" placeholder="••••••••"/>
+      </div>
+      <button onclick="doLogin()" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px" id="loginBtn">Ingresar al Sistema</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       DASHBOARD
+  ═══════════════════════════════════════════ -->
+  <section id="sec-dashboard" class="fade-up">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div class="section-title">Dashboard Operacional</div>
+        <div class="section-sub">Resumen ejecutivo del periodo seleccionado</div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center" class="no-print">
+        <input type="date" id="db-from" class="inp mono" style="font-size:12px"/>
+        <span style="color:var(--muted);font-size:12px">→</span>
+        <input type="date" id="db-to" class="inp mono" style="font-size:12px"/>
+        <button onclick="loadDashboard()" class="btn btn-primary btn-sm">Aplicar</button>
+        <button onclick="window.print()" class="btn btn-ghost btn-sm">🖨 Imprimir</button>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px" id="kpiGrid">
+      <!-- filled by JS -->
+    </div>
+
+    <!-- Charts row 1 -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px">Nivel Gasómetro & Presión Digestor</div>
+            <div style="font-size:11px;color:var(--muted)">Evolución por turno</div>
+          </div>
+          <select class="inp" style="font-size:11px;padding:6px 10px" id="chart1Range" onchange="loadDashboard()">
+            <option value="14">Últimos 14 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="60">Últimos 60 días</option>
+          </select>
+        </div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartGasometro"></canvas></div>
+      </div>
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Módulos por Estado</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Distribución de condición registrada</div>
+        <div class="chart-wrap" style="height:220px"><canvas id="chartEstados"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts row 2 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Temperatura Lodos (Área 60)</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">T° entrada vs salida — Rango óptimo sombreado</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartTemp"></canvas></div>
+      </div>
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:4px">Anomalías por Módulo</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Frecuencia en el periodo</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartAnomalias"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabla resumen reciente -->
+    <div class="card">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Últimos Turnos Registrados</div>
+      <div class="scroll-x">
+        <table id="tablaDashboard">
+          <thead><tr>
+            <th>Turno</th><th>Tipo</th><th>Operador</th><th>Gasómetro %</th>
+            <th>Pres. Dig.</th><th>T° Lodo</th><th>LEL</th><th>Alertas</th><th>Estado</th>
+          </tr></thead>
+          <tbody id="tbodyDashboard"><tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Cargando datos...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       BUSCADOR HISTÓRICO
+  ═══════════════════════════════════════════ -->
+  <section id="sec-historicos" style="display:none" class="fade-up">
+    <div style="margin-bottom:24px">
+      <div class="section-title">Buscador de Históricos</div>
+      <div class="section-sub">Consulta y filtrado de todos los registros de turno</div>
+    </div>
+
+    <div class="card no-print" style="margin-bottom:16px">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
+        <div>
+          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Desde</label>
+          <input type="date" id="h-from" class="inp" style="width:100%"/>
+        </div>
+        <div>
+          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Hasta</label>
+          <input type="date" id="h-to" class="inp" style="width:100%"/>
+        </div>
+        <div>
+          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Operador</label>
+          <select id="h-oper" class="inp" style="width:100%"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Turno</label>
+          <select id="h-tipo" class="inp" style="width:100%">
+            <option value="">Todos</option><option value="Día">Día</option><option value="Noche">Noche</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Con alertas</label>
+          <select id="h-alert" class="inp" style="width:100%">
+            <option value="">Todos</option><option value="si">Solo con alertas</option><option value="no">Sin alertas</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Búsqueda</label>
+          <input type="text" id="h-search" class="inp" style="width:100%" placeholder="Texto libre..."/>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="buscarHistoricos()" class="btn btn-primary" style="flex:1;justify-content:center">Buscar</button>
+          <button onclick="resetBusqueda()" class="btn btn-ghost btn-sm">✕</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div id="h-resultCount" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;color:var(--muted)">— resultados</div>
+        <div style="display:flex;gap:8px" class="no-print">
+          <button onclick="exportarCSV()" class="btn btn-ghost btn-sm">📥 CSV</button>
+          <button onclick="exportarExcel()" class="btn btn-green btn-sm">📊 Excel</button>
+        </div>
+      </div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr>
+            <th>Fecha / Token</th><th>Tipo</th><th>Operador</th>
+            <th>Gas. %</th><th>Pres. mb</th><th>T° Dig.</th>
+            <th>Duración</th><th>Alertas</th><th>Cerrado</th><th></th>
+          </tr></thead>
+          <tbody id="tbodyHistoricos"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Aplica un filtro para buscar registros</td></tr></tbody>
+        </table>
+      </div>
+      <div id="h-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       POR MÓDULO
+  ═══════════════════════════════════════════ -->
+  <section id="sec-modulos" style="display:none" class="fade-up">
+    <div style="margin-bottom:24px">
+      <div class="section-title">Análisis por Módulo / Equipo</div>
+      <div class="section-sub">Historial de condición y tendencias por área de inspección</div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px" class="no-print" id="modPills">
+      <span class="pill active" onclick="selModulo(this,'gasometro')">Gasómetro</span>
+      <span class="pill" onclick="selModulo(this,'digestor')">Digestor</span>
+      <span class="pill" onclick="selModulo(this,'compresores')">Compresores</span>
+      <span class="pill" onclick="selModulo(this,'calderas')">Calderas</span>
+      <span class="pill" onclick="selModulo(this,'antorchas')">Antorchas</span>
+      <span class="pill" onclick="selModulo(this,'area50')">Área 50</span>
+      <span class="pill" onclick="selModulo(this,'area60')">Área 60</span>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center" class="no-print">
+      <input type="date" id="m-from" class="inp mono" style="font-size:12px"/>
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="m-to" class="inp mono" style="font-size:12px"/>
+      <button onclick="loadModulo()" class="btn btn-primary btn-sm">Consultar</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:20px" id="moduloKpis"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Evolución de Estado</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartModuloEstado"></canvas></div>
+      </div>
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Fallas más Frecuentes</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartModuloFallas"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Registros del Módulo</div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Fecha</th><th>Turno</th><th>Operador</th><th>Estado Ppal.</th><th>Observación</th><th>Fotos</th></tr></thead>
+          <tbody id="tbodyModulo"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Selecciona módulo y rango</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       MEDIDORES
+  ═══════════════════════════════════════════ -->
+  <section id="sec-medidores" style="display:none" class="fade-up">
+    <div style="margin-bottom:24px">
+      <div class="section-title">Evolución de Medidores</div>
+      <div class="section-sub">Series temporales de variables numéricas con bandas de alerta</div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px" class="no-print">
+      <select id="med-var" class="inp" onchange="loadMedidor()">
+        <option value="scada_nivel_gasometro">Nivel Gasómetro (%)</option>
+        <option value="scada_presion_mbar">Presión Gasómetro (mb)</option>
+        <option value="scada_dig_nivel_cm">Nivel Digestor (cm)</option>
+        <option value="scada_dig_presion_mbar">Presión Digestor (mb)</option>
+        <option value="scada_dig_temp_c">Temperatura Digestor (°C)</option>
+        <option value="scada_flujo_biogas_nm3h">Flujo Biogás Comp. (Nm³/h)</option>
+        <option value="nivel_glp_pct">Nivel GLP (%)</option>
+        <option value="altura_lodo_cm">Altura Manto Lodo (cm)</option>
+        <option value="presion_balon_bar">Presión Balón (bar)</option>
+        <option value="temp_lodo_entrada_c">T° Lodo Entrada (°C)</option>
+        <option value="temp_lodo_salida_c">T° Lodo Salida (°C)</option>
+        <option value="lectura_lel_porcentaje">Lectura LEL (%)</option>
+      </select>
+      <input type="date" id="med-from" class="inp mono" style="font-size:12px"/>
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="med-to" class="inp mono" style="font-size:12px"/>
+      <select id="med-turno" class="inp">
+        <option value="">Todos los turnos</option>
+        <option value="Día">Solo Día</option>
+        <option value="Noche">Solo Noche</option>
+      </select>
+      <button onclick="loadMedidor()" class="btn btn-primary btn-sm">Graficar</button>
+      <button onclick="exportarCSVMedidor()" class="btn btn-ghost btn-sm no-print">📥 CSV</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="chart-wrap" style="height:300px"><canvas id="chartMedidor"></canvas></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:16px" id="medKpis"></div>
+
+    <div class="card">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Valores Registrados</div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Fecha</th><th>Turno</th><th>Operador</th><th>Valor</th><th>Estado</th></tr></thead>
+          <tbody id="tbodyMedidor"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">Selecciona un medidor y aplica filtro</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       ALERTAS
+  ═══════════════════════════════════════════ -->
+  <section id="sec-alertas" style="display:none" class="fade-up">
+    <div style="margin-bottom:24px">
+      <div class="section-title">Registro de Alertas y Anomalías</div>
+      <div class="section-sub">Todos los eventos fuera de rango o condición no óptima</div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px" class="no-print">
+      <input type="date" id="al-from" class="inp mono" style="font-size:12px"/>
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="al-to" class="inp mono" style="font-size:12px"/>
+      <select id="al-modulo" class="inp">
+        <option value="">Todos los módulos</option>
+        <option value="gasometro">Gasómetro</option>
+        <option value="digestor">Digestor</option>
+        <option value="compresores">Compresores</option>
+        <option value="calderas">Calderas</option>
+        <option value="antorchas">Antorchas</option>
+        <option value="area50">Área 50</option>
+        <option value="area60">Área 60</option>
+      </select>
+      <select id="al-sev" class="inp">
+        <option value="">Toda severidad</option>
+        <option value="critica">Crítica</option>
+        <option value="advertencia">Advertencia</option>
+      </select>
+      <button onclick="loadAlertas()" class="btn btn-primary btn-sm">Consultar</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-bottom:20px" id="alertKpis"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Alertas por Módulo</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartAlertaModulo"></canvas></div>
+      </div>
+      <div class="card">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:16px">Tendencia Diaria</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartAlertaTrend"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Log de Alertas</div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Fecha</th><th>Turno</th><th>Módulo</th><th>Tipo de Alerta</th><th>Valor Registrado</th><th>Operador</th><th>Observación</th></tr></thead>
+          <tbody id="tbodyAlertas"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--muted)">Aplica filtro para ver alertas</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       OPERADORES
+  ═══════════════════════════════════════════ -->
+  <section id="sec-operadores" style="display:none" class="fade-up">
+    <div style="margin-bottom:24px">
+      <div class="section-title">Reporte por Operador</div>
+      <div class="section-sub">Cumplimiento, anomalías detectadas y cobertura por turno</div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px" class="no-print">
+      <input type="date" id="op-from" class="inp mono" style="font-size:12px"/>
+      <span style="color:var(--muted);font-size:12px">→</span>
+      <input type="date" id="op-to" class="inp mono" style="font-size:12px"/>
+      <button onclick="loadOperadores()" class="btn btn-primary btn-sm">Consultar</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:16px" id="opCards">
+      <div class="card" style="text-align:center;padding:40px;color:var(--muted)">Aplica un rango para ver estadísticas por operador</div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:15px;margin-bottom:16px">Comparativa de Operadores</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartOperadores"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       REPORTES
+  ═══════════════════════════════════════════ -->
+  <section id="sec-reportes" style="display:none" class="fade-up">
+    <div style="margin-bottom:24px">
+      <div class="section-title">Generador de Reportes</div>
+      <div class="section-sub">Exporta reportes consolidados en PDF, Excel o envío por correo</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <!-- Reporte por módulo -->
+      <div class="card" style="border-top:4px solid var(--blue)">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">📊 Por Módulo / Equipo</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Historial completo de inspecciones con estados, fallas y observaciones</div>
+        <div style="display:grid;gap:10px">
+          <div>
+            <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Módulo</label>
+            <select class="inp" style="width:100%" id="rep-mod">
+              <option value="todos">Todos</option>
+              <option value="gasometro">Gasómetro</option>
+              <option value="digestor">Digestor</option>
+              <option value="compresores">Compresores</option>
+              <option value="calderas">Calderas</option>
+              <option value="antorchas">Antorchas</option>
+              <option value="area50">Área 50</option>
+              <option value="area60">Área 60</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <input type="date" id="rep-mod-from" class="inp" style="width:100%"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <input type="date" id="rep-mod-to" class="inp" style="width:100%"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="generarReporte('modulo','pdf')" class="btn btn-primary btn-sm">🖨 PDF</button>
+            <button onclick="generarReporte('modulo','excel')" class="btn btn-green btn-sm">📊 Excel</button>
+            <button onclick="generarReporte('modulo','email')" class="btn btn-ghost btn-sm">✉️ Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reporte alertas -->
+      <div class="card" style="border-top:4px solid #dc2626">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">🚨 Alertas y Anomalías</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Log completo de eventos fuera de rango con contexto operacional</div>
+        <div style="display:grid;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <input type="date" id="rep-al-from" class="inp" style="width:100%"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <input type="date" id="rep-al-to" class="inp" style="width:100%"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="generarReporte('alertas','pdf')" class="btn btn-primary btn-sm">🖨 PDF</button>
+            <button onclick="generarReporte('alertas','excel')" class="btn btn-green btn-sm">📊 Excel</button>
+            <button onclick="generarReporte('alertas','email')" class="btn btn-ghost btn-sm">✉️ Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reporte medidor -->
+      <div class="card" style="border-top:4px solid var(--green)">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">📈 Por Medidor</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Serie temporal de una variable con estadísticas y percentiles</div>
+        <div style="display:grid;gap:10px">
+          <div>
+            <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Variable</label>
+            <select class="inp" style="width:100%" id="rep-med">
+              <option value="scada_nivel_gasometro">Nivel Gasómetro</option>
+              <option value="scada_dig_temp_c">T° Digestor</option>
+              <option value="lectura_lel_porcentaje">LEL</option>
+              <option value="temp_lodo_entrada_c">T° Lodo Entrada</option>
+              <option value="presion_balon_bar">Presión Balón</option>
+              <option value="nivel_glp_pct">Nivel GLP</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <input type="date" id="rep-med-from" class="inp" style="width:100%"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <input type="date" id="rep-med-to" class="inp" style="width:100%"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="generarReporte('medidor','pdf')" class="btn btn-primary btn-sm">🖨 PDF</button>
+            <button onclick="generarReporte('medidor','excel')" class="btn btn-green btn-sm">📊 Excel</button>
+            <button onclick="generarReporte('medidor','email')" class="btn btn-ghost btn-sm">✉️ Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reporte operador -->
+      <div class="card" style="border-top:4px solid var(--yellow)">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">👤 Por Operador</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Turnos realizados, anomalías reportadas y métricas de completitud</div>
+        <div style="display:grid;gap:10px">
+          <div>
+            <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Operador</label>
+            <select class="inp" style="width:100%" id="rep-op"><option value="">Todos</option></select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <input type="date" id="rep-op-from" class="inp" style="width:100%"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <input type="date" id="rep-op-to" class="inp" style="width:100%"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="generarReporte('operador','pdf')" class="btn btn-primary btn-sm">🖨 PDF</button>
+            <button onclick="generarReporte('operador','excel')" class="btn btn-green btn-sm">📊 Excel</button>
+            <button onclick="generarReporte('operador','email')" class="btn btn-ghost btn-sm">✉️ Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comparativa día/noche -->
+      <div class="card" style="border-top:4px solid #7c3aed">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px;margin-bottom:4px">🌓 Comparativa Día / Noche</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Diferencias estadísticas entre turnos de día y noche en cualquier medidor</div>
+        <div style="display:grid;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Desde</label>
+              <input type="date" id="rep-dn-from" class="inp" style="width:100%"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px">Hasta</label>
+              <input type="date" id="rep-dn-to" class="inp" style="width:100%"/>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="generarReporte('diaNoche','pdf')" class="btn btn-primary btn-sm">🖨 PDF</button>
+            <button onclick="generarReporte('diaNoche','excel')" class="btn btn-green btn-sm">📊 Excel</button>
+            <button onclick="generarReporte('diaNoche','email')" class="btn btn-ghost btn-sm">✉️ Email</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal email -->
+    <div id="emailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center">
+      <div class="card fade-up" style="width:100%;max-width:440px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:18px;margin-bottom:16px">✉️ Enviar Reporte por Correo</div>
+        <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Destinatarios (separar con coma)</label>
+        <input type="text" id="emailDest" class="inp" style="width:100%;margin-bottom:12px" placeholder="jefe@aguasandinas.cl, mantto@aguasandinas.cl"/>
+        <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Asunto</label>
+        <input type="text" id="emailSubject" class="inp" style="width:100%;margin-bottom:12px" value="Reporte RondaSync — PTAS Talagante"/>
+        <label style="font-size:10px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:5px">Nota adicional</label>
+        <textarea class="inp" style="width:100%;height:80px;resize:none;margin-bottom:16px" id="emailNota" placeholder="Opcional..."></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="cerrarEmailModal()" class="btn btn-ghost">Cancelar</button>
+          <button onclick="enviarEmail()" class="btn btn-primary">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- DETALLE MODAL -->
+<div id="detailModal" style="display:none;position:fixed;inset:0;background:rgba(13,31,45,.7);z-index:150;align-items:center;justify-content:center;padding:20px">
+  <div class="card fade-up" style="width:100%;max-width:640px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="section-title" id="detailTitle">Detalle de Turno</div>
+      <button onclick="cerrarDetalle()" style="background:var(--surface);border:none;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:16px">✕</button>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════
+const SUPABASE_URL     = 'https://cbvipsjpvlgyipifidyo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_-9xy9fwszhg5RMqlilNn-A_wnK2VGCb';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let chartInstances = {};
+let currentSection = 'dashboard';
+let currentModulo  = 'gasometro';
+
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value;
+  const pass  = document.getElementById('loginPassword').value;
+  const btn   = document.getElementById('loginBtn');
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    errEl.textContent = 'Credenciales incorrectas. Intenta nuevamente.';
+    errEl.style.display = 'block';
+    btn.textContent = 'Ingresar al Sistema'; btn.disabled = false;
+    return;
+  }
+  currentUser = data.user;
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('userLabel').textContent = email.split('@')[0];
+  initDates();
+  loadDashboard();
+  populateOperadorSelects();
+}
+
+async function handleLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// check existing session
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) {
+    currentUser = session.user;
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('userLabel').textContent = session.user.email.split('@')[0];
+    initDates();
+    loadDashboard();
+    populateOperadorSelects();
+  }
+});
+
+document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function showSection(name) {
+  document.querySelectorAll('section[id^="sec-"]').forEach(s => s.style.display = 'none');
+  document.getElementById('sec-' + name).style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  currentSection = name;
+  document.querySelector('.sidebar').classList.remove('open');
+  // lazy load
+  if (name === 'historicos') buscarHistoricos();
+  if (name === 'medidores')  loadMedidor();
+  if (name === 'alertas')    loadAlertas();
+  if (name === 'operadores') loadOperadores();
+  if (name === 'modulos')    loadModulo();
+}
+
+// ══════════════════════════════════════════
+// DATE HELPERS
+// ══════════════════════════════════════════
+function initDates() {
+  const today = new Date();
+  const ago30 = new Date(); ago30.setDate(today.getDate() - 30);
+  const fmt = d => d.toISOString().split('T')[0];
+  const pairs = [
+    ['db-from','db-to'],['h-from','h-to'],['m-from','m-to'],
+    ['med-from','med-to'],['al-from','al-to'],['op-from','op-to'],
+    ['rep-mod-from','rep-mod-to'],['rep-al-from','rep-al-to'],
+    ['rep-med-from','rep-med-to'],['rep-op-from','rep-op-to'],
+    ['rep-dn-from','rep-dn-to'],
+  ];
+  pairs.forEach(([f,t]) => {
+    const ef = document.getElementById(f), et = document.getElementById(t);
+    if (ef) ef.value = fmt(ago30);
+    if (et) et.value = fmt(today);
+  });
+}
+
+function dateRange(fromId, toId) {
+  return { from: document.getElementById(fromId)?.value, to: document.getElementById(toId)?.value };
+}
+
+// ══════════════════════════════════════════
+// CHART HELPERS
+// ══════════════════════════════════════════
+const COLORS = { blue:'#0068B3', green:'#009C62', yellow:'#F4C300', dark:'#004A80', red:'#dc2626', amber:'#f59e0b', purple:'#7c3aed', teal:'#0d9488' };
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function mkChart(id, config) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  chartInstances[id] = new Chart(ctx, config);
+  return chartInstances[id];
+}
+
+const baseFont = { family: "'Barlow', sans-serif", size: 11 };
+const gridColor = '#e2e8f0';
+
+// ══════════════════════════════════════════
+// MOCK DATA GENERATOR (mientras Supabase tiene datos reales)
+// ══════════════════════════════════════════
+function genDates(n, from) {
+  const dates = []; const d = from ? new Date(from) : new Date();
+  d.setDate(d.getDate() - n);
+  for (let i = 0; i < n; i++) { d.setDate(d.getDate() + 1); dates.push(d.toISOString().split('T')[0]); }
+  return dates;
+}
+
+function mockTurnos(n = 30) {
+  const operadores = ['jgonzalez', 'mlopez', 'rperez', 'cmuñoz'];
+  const tipos = ['Día','Noche'];
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const tipo = tipos[i % 2];
+    rows.push({
+      id: i+1,
+      turno_token: d.toISOString().split('T')[0] + '-' + tipo.toUpperCase(),
+      tipo_turno: tipo,
+      operador_nombre: operadores[i % operadores.length] + '@ptas.cl',
+      created_at: d.toISOString(),
+      hora_fin: new Date(d.getTime() + 12*3600*1000).toISOString(),
+      turno_cerrado: Math.random() > 0.1,
+      scada_nivel_gasometro: (40 + Math.random()*40).toFixed(1),
+      scada_presion_mbar:    (15 + Math.random()*10).toFixed(1),
+      scada_dig_temp_c:      (34 + Math.random()*3).toFixed(1),
+      scada_dig_presion_mbar:(10 + Math.random()*5).toFixed(1),
+      scada_flujo_biogas_nm3h:(200 + Math.random()*100).toFixed(0),
+      alertas: Math.floor(Math.random()*3),
+    });
+  }
+  return rows;
+}
+
+function mockModuloData(modulo, n=30) {
+  const estados = ['Optimo','Falla leve','Falla grave'];
+  const pesos   = [0.75, 0.2, 0.05];
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const r = Math.random();
+    const estado = r < pesos[0] ? estados[0] : r < pesos[0]+pesos[1] ? estados[1] : estados[2];
+    rows.push({
+      fecha: d.toISOString().split('T')[0],
+      turno: i%2===0 ? 'Día' : 'Noche',
+      operador: ['jgonzalez','mlopez','rperez'][i%3] + '@ptas.cl',
+      estado,
+      observacion: estado !== 'Optimo' ? 'Se detectó condición anormal. Monitoreo reforzado.' : '',
+      fotos: Math.floor(Math.random()*4),
+    });
+  }
+  return rows;
+}
+
+function mockMedidorData(variable, n=30) {
+  const rangos = {
+    scada_nivel_gasometro:  { base: 60, amp: 30, min: 20, max: 95 },
+    scada_presion_mbar:     { base: 18, amp: 8,  min: 5,  max: 30 },
+    scada_dig_temp_c:       { base: 35, amp: 2,  min: 33, max: 38 },
+    scada_dig_presion_mbar: { base: 12, amp: 4,  min: 6,  max: 20 },
+    scada_flujo_biogas_nm3h:{ base: 250,amp: 80, min: 100,max: 400 },
+    nivel_glp_pct:          { base: 65, amp: 25, min: 10, max: 100 },
+    altura_lodo_cm:         { base: 90, amp: 40, min: 20, max: 150 },
+    presion_balon_bar:      { base: 4,  amp: 2,  min: 2,  max: 7 },
+    temp_lodo_entrada_c:    { base: 36, amp: 2,  min: 33, max: 39 },
+    temp_lodo_salida_c:     { base: 34, amp: 1.5,min: 31, max: 37 },
+    lectura_lel_porcentaje: { base: 2,  amp: 8,  min: 0,  max: 15 },
+  };
+  const r = rangos[variable] || { base: 50, amp: 20, min: 0, max: 100 };
+  const rows = [];
+  let val = r.base;
+  for (let i = n; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    val = Math.max(r.min, Math.min(r.max, val + (Math.random()-0.48)*r.amp*0.3));
+    rows.push({
+      fecha: d.toISOString().split('T')[0],
+      turno: i%2===0 ? 'Día' : 'Noche',
+      operador: ['jgonzalez','mlopez','rperez'][i%3] + '@ptas.cl',
+      valor: parseFloat(val.toFixed(2)),
+    });
+  }
+  return rows;
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+async function loadDashboard() {
+  const { from, to } = dateRange('db-from', 'db-to');
+  // intentar Supabase; si falla usar mock
+  let turnos = [];
+  try {
+    const { data, error } = await sb.from('registro_turnos').select('*').gte('created_at', from).lte('created_at', to + 'T23:59:59').order('created_at', { ascending: false }).limit(200);
+    if (!error && data?.length) turnos = data;
+    else turnos = mockTurnos(60);
+  } catch { turnos = mockTurnos(60); }
+
+  renderKPIs(turnos);
+  renderDashboardCharts(turnos);
+  renderTablaDashboard(turnos.slice(0, 20));
+}
+
+function renderKPIs(turnos) {
+  const total = turnos.length;
+  const alertas = turnos.filter(t => (t.alertas || 0) > 0).length;
+  const cerrados = turnos.filter(t => t.turno_cerrado).length;
+  const cumplimiento = total ? Math.round(cerrados/total*100) : 0;
+  const avgGas = turnos.filter(t=>t.scada_nivel_gasometro).reduce((a,b)=>a+parseFloat(b.scada_nivel_gasometro||0),0) / (turnos.filter(t=>t.scada_nivel_gasometro).length||1);
+
+  const kpis = [
+    { label: 'Turnos Totales', value: total, delta: '', color: COLORS.blue },
+    { label: 'Turnos Cerrados', value: cerrados, delta: cumplimiento + '% cumplimiento', color: COLORS.green },
+    { label: 'Con Alertas', value: alertas, delta: Math.round(alertas/total*100||0) + '% del periodo', color: alertas>5?COLORS.red:COLORS.amber },
+    { label: 'Gas. Promedio', value: avgGas.toFixed(1) + '%', delta: 'Nivel gasómetro', color: COLORS.dark },
+  ];
+
+  const g = document.getElementById('kpiGrid');
+  g.innerHTML = kpis.map(k => `
+    <div class="card card-sm" style="border-left:4px solid ${k.color}">
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-label">${k.label}</div>
+      ${k.delta ? `<div class="kpi-delta" style="color:var(--muted)">${k.delta}</div>` : ''}
+    </div>`).join('');
+}
+
+function renderDashboardCharts(turnos) {
+  const labels = turnos.slice(0,20).reverse().map(t => t.turno_token?.split('T')[0] || t.created_at?.split('T')[0]);
+  const gasNivel = turnos.slice(0,20).reverse().map(t => parseFloat(t.scada_nivel_gasometro||0));
+  const digPres  = turnos.slice(0,20).reverse().map(t => parseFloat(t.scada_dig_presion_mbar||0));
+
+  mkChart('chartGasometro', {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Nivel Gas. (%)', data: gasNivel, borderColor: COLORS.yellow, backgroundColor: COLORS.yellow+'22', tension: .35, fill: true, pointRadius: 3 },
+        { label: 'Pres. Dig. (mb)', data: digPres, borderColor: COLORS.blue, backgroundColor: 'transparent', tension: .35, pointRadius: 3, yAxisID: 'y2' },
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:baseFont,boxWidth:12}}}, scales:{
+      x: { ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45}, grid:{color:gridColor} },
+      y: { ticks:{font:baseFont}, grid:{color:gridColor}, title:{display:true,text:'%',font:baseFont} },
+      y2: { position:'right', ticks:{font:baseFont}, grid:{display:false} },
+    }}
+  });
+
+  const estCounts = { Óptimo: 0, Advertencia: 0, Falla: 0 };
+  turnos.forEach(t => {
+    const n = t.alertas || 0;
+    if (n === 0) estCounts['Óptimo']++;
+    else if (n <= 2) estCounts['Advertencia']++;
+    else estCounts['Falla']++;
+  });
+  mkChart('chartEstados', {
+    type: 'doughnut',
+    data: { labels: Object.keys(estCounts), datasets: [{ data: Object.values(estCounts), backgroundColor: [COLORS.green, COLORS.amber, COLORS.red], borderWidth: 2 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{font:baseFont,boxWidth:12} } } }
+  });
+
+  const md = mockMedidorData('temp_lodo_entrada_c', 20);
+  const md2 = mockMedidorData('temp_lodo_salida_c', 20);
+  mkChart('chartTemp', {
+    type: 'line',
+    data: {
+      labels: md.map(r=>r.fecha),
+      datasets: [
+        { label: 'T° Entrada', data: md.map(r=>r.valor), borderColor: COLORS.red, tension:.35, pointRadius:2, fill:false },
+        { label: 'T° Salida',  data: md2.map(r=>r.valor), borderColor: COLORS.blue, tension:.35, pointRadius:2, fill:false },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{labels:{font:baseFont,boxWidth:12}},
+        annotation: { annotations: { band: { type:'box', yMin:34, yMax:35.5, backgroundColor:'rgba(0,156,98,.08)', borderColor:'rgba(0,156,98,.3)', label:{display:true,content:'Rango óptimo',font:{size:9}} } } }
+      },
+      scales:{ x:{ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45},grid:{color:gridColor}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} }
+    }
+  });
+
+  const modulos = ['Gasómetro','Digestor','Compresores','Calderas','Antorchas','Área 50','Área 60'];
+  const anomCount = modulos.map(() => Math.floor(Math.random()*8));
+  mkChart('chartAnomalias', {
+    type: 'bar',
+    data: { labels: modulos, datasets: [{ label: 'Anomalías', data: anomCount, backgroundColor: modulos.map((_,i)=>[COLORS.blue,COLORS.yellow,COLORS.green,COLORS.red,COLORS.amber,COLORS.dark,COLORS.teal][i]), borderRadius: 6 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{font:baseFont}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} } }
+  });
+}
+
+function renderTablaDashboard(turnos) {
+  const tbody = document.getElementById('tbodyDashboard');
+  if (!turnos.length) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--muted)">Sin datos en el periodo</td></tr>'; return; }
+  tbody.innerHTML = turnos.map(t => {
+    const al = t.alertas || 0;
+    const badge = al===0 ? '<span class="badge badge-ok">OK</span>' : al<=2 ? '<span class="badge badge-warn">'+al+' alertas</span>' : '<span class="badge badge-alert">'+al+' alertas</span>';
+    const cerrado = t.turno_cerrado ? '<span class="badge badge-ok">Cerrado</span>' : '<span class="badge badge-warn">Abierto</span>';
+    const fecha = (t.created_at||'').split('T')[0];
+    return `<tr class="${al>2?'row-alert':''}">
+      <td class="mono" style="font-size:11px">${fecha}</td>
+      <td><span class="badge ${t.tipo_turno==='Día'?'badge-blue':'badge-ok'}">${t.tipo_turno||'—'}</span></td>
+      <td style="font-size:12px">${(t.operador_nombre||'').split('@')[0]}</td>
+      <td class="mono">${t.scada_nivel_gasometro||'—'}%</td>
+      <td class="mono">${t.scada_dig_presion_mbar||'—'} mb</td>
+      <td class="mono">${t.scada_dig_temp_c||'—'} °C</td>
+      <td class="mono" style="font-size:11px">${badge}</td>
+      <td>${badge}</td>
+      <td>${cerrado}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// BUSCADOR HISTÓRICO
+// ══════════════════════════════════════════
+let histPage = 0;
+const histPageSize = 25;
+let histAll = [];
+
+async function buscarHistoricos() {
+  const { from, to } = dateRange('h-from','h-to');
+  const oper  = document.getElementById('h-oper')?.value || '';
+  const tipo  = document.getElementById('h-tipo')?.value || '';
+  const search= document.getElementById('h-search')?.value || '';
+
+  let data = mockTurnos(120);
+  if (oper) data = data.filter(t => t.operador_nombre?.includes(oper));
+  if (tipo) data = data.filter(t => t.tipo_turno === tipo);
+  if (search) data = data.filter(t => JSON.stringify(t).toLowerCase().includes(search.toLowerCase()));
+
+  histAll = data;
+  histPage = 0;
+  renderHistPage();
+  document.getElementById('h-resultCount').textContent = data.length + ' resultado' + (data.length!==1?'s':'');
+}
+
+function renderHistPage() {
+  const start = histPage * histPageSize;
+  const slice = histAll.slice(start, start + histPageSize);
+  const tbody = document.getElementById('tbodyHistoricos');
+
+  if (!histAll.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--muted)">Sin resultados</td></tr>'; return; }
+
+  tbody.innerHTML = slice.map(t => {
+    const al = t.alertas||0;
+    const fecha = (t.created_at||'').split('T')[0];
+    const dur = t.hora_fin ? Math.round((new Date(t.hora_fin)-new Date(t.created_at))/3600000) + 'h' : '—';
+    return `<tr class="${al>2?'row-alert':''}">
+      <td class="mono" style="font-size:11px">${fecha}<div style="color:var(--muted);font-size:9px">${t.turno_token||''}</div></td>
+      <td><span class="badge ${t.tipo_turno==='Día'?'badge-blue':'badge-ok'}">${t.tipo_turno||'—'}</span></td>
+      <td style="font-size:12px">${(t.operador_nombre||'').split('@')[0]}</td>
+      <td class="mono">${t.scada_nivel_gasometro||'—'}%</td>
+      <td class="mono">${t.scada_presion_mbar||'—'}</td>
+      <td class="mono">${t.scada_dig_temp_c||'—'}°C</td>
+      <td class="mono" style="font-size:11px">${dur}</td>
+      <td>${al>0?`<span class="badge badge-${al>2?'alert':'warn'}">${al}</span>`:'<span class="badge badge-ok">0</span>'}</td>
+      <td>${t.turno_cerrado?'<span class="badge badge-ok">✓</span>':'<span class="badge badge-warn">—</span>'}</td>
+      <td><button onclick="verDetalle(${t.id})" class="btn btn-ghost btn-sm">Ver</button></td>
+    </tr>`;
+  }).join('');
+
+  // paginación
+  const pages = Math.ceil(histAll.length / histPageSize);
+  const pag = document.getElementById('h-pagination');
+  pag.innerHTML = Array.from({length:pages},(_,i)=>`<button onclick="histPage=${i};renderHistPage()" class="btn ${i===histPage?'btn-primary':'btn-ghost'} btn-sm">${i+1}</button>`).join('');
+}
+
+function resetBusqueda() {
+  ['h-oper','h-tipo','h-alert'].forEach(id => { const e=document.getElementById(id); if(e) e.value=''; });
+  const si = document.getElementById('h-search'); if(si) si.value='';
+  histAll=[]; document.getElementById('tbodyHistoricos').innerHTML='<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted)">Aplica un filtro para buscar registros</td></tr>';
+  document.getElementById('h-resultCount').textContent='— resultados';
+  document.getElementById('h-pagination').innerHTML='';
+}
+
+// ══════════════════════════════════════════
+// MÓDULO
+// ══════════════════════════════════════════
+function selModulo(el, mod) {
+  document.querySelectorAll('#modPills .pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  currentModulo = mod;
+  loadModulo();
+}
+
+function loadModulo() {
+  const data = mockModuloData(currentModulo, 40);
+  const optimo = data.filter(r=>r.estado==='Optimo').length;
+  const falla  = data.filter(r=>r.estado!=='Optimo').length;
+  const pct    = Math.round(optimo/data.length*100);
+
+  document.getElementById('moduloKpis').innerHTML = `
+    <div class="card card-sm" style="border-left:4px solid var(--green)"><div class="kpi-value">${optimo}</div><div class="kpi-label">Registros Óptimos</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--red)"><div class="kpi-value">${falla}</div><div class="kpi-label">Con Anomalía</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--blue)"><div class="kpi-value">${pct}%</div><div class="kpi-label">Cumplimiento</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--yellow)"><div class="kpi-value">${data.length}</div><div class="kpi-label">Total Inspecciones</div></div>`;
+
+  const dias   = data.filter(r=>r.turno==='Día');
+  const noches = data.filter(r=>r.turno==='Noche');
+  mkChart('chartModuloEstado', {
+    type:'bar',
+    data:{
+      labels:['Día','Noche'],
+      datasets:[
+        {label:'Óptimo', data:[dias.filter(r=>r.estado==='Optimo').length, noches.filter(r=>r.estado==='Optimo').length], backgroundColor:COLORS.green, borderRadius:6},
+        {label:'Anomalía',data:[dias.filter(r=>r.estado!=='Optimo').length, noches.filter(r=>r.estado!=='Optimo').length], backgroundColor:COLORS.red, borderRadius:6},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:baseFont,boxWidth:12}}},scales:{x:{ticks:{font:baseFont}},y:{ticks:{font:baseFont},grid:{color:gridColor},stacked:false}}}
+  });
+
+  const fallaMap = {};
+  data.filter(r=>r.estado!=='Optimo').forEach(r=>{ fallaMap[r.estado]=(fallaMap[r.estado]||0)+1; });
+  mkChart('chartModuloFallas', {
+    type:'bar',
+    data:{labels:Object.keys(fallaMap)||['Sin fallas'],datasets:[{label:'Ocurrencias',data:Object.values(fallaMap)||[0],backgroundColor:COLORS.amber,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:baseFont}},y:{ticks:{font:baseFont}}}}
+  });
+
+  document.getElementById('tbodyModulo').innerHTML = data.slice(0,30).map(r => `
+    <tr>
+      <td class="mono" style="font-size:11px">${r.fecha}</td>
+      <td><span class="badge ${r.turno==='Día'?'badge-blue':'badge-ok'}">${r.turno}</span></td>
+      <td style="font-size:12px">${r.operador.split('@')[0]}</td>
+      <td><span class="badge ${r.estado==='Optimo'?'badge-ok':r.estado.includes('grave')?'badge-alert':'badge-warn'}">${r.estado}</span></td>
+      <td style="font-size:11px;color:var(--muted);max-width:200px">${r.observacion||'—'}</td>
+      <td class="mono">${r.fotos} 📸</td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════
+// MEDIDORES
+// ══════════════════════════════════════════
+const medLimits = {
+  scada_nivel_gasometro:  { min:20, max:95, warn:30, label:'Nivel Gas. (%)' },
+  scada_presion_mbar:     { min:5,  max:30, warn:10, label:'Pres. Gas. (mb)' },
+  scada_dig_temp_c:       { min:33, max:38, warn:null, label:'T° Dig. (°C)' },
+  scada_dig_presion_mbar: { min:6,  max:20, warn:null, label:'Pres. Dig. (mb)' },
+  scada_flujo_biogas_nm3h:{ min:100,max:400,warn:null, label:'Flujo Biogás (Nm³/h)' },
+  nivel_glp_pct:          { min:10, max:100,warn:20,  label:'Nivel GLP (%)' },
+  altura_lodo_cm:         { min:20, max:120,warn:110, label:'Altura Lodo (cm)' },
+  presion_balon_bar:      { min:3,  max:7,  warn:3.5, label:'Pres. Balón (bar)' },
+  temp_lodo_entrada_c:    { min:34, max:39, warn:null, label:'T° Lodo Entrada (°C)' },
+  temp_lodo_salida_c:     { min:31, max:35.5,warn:null,label:'T° Lodo Salida (°C)' },
+  lectura_lel_porcentaje: { min:0,  max:10, warn:5,   label:'LEL (%)' },
+};
+
+let medData = [];
+function loadMedidor() {
+  const variable = document.getElementById('med-var')?.value || 'scada_nivel_gasometro';
+  const turnoFilt = document.getElementById('med-turno')?.value || '';
+  let data = mockMedidorData(variable, 40);
+  if (turnoFilt) data = data.filter(r => r.turno === turnoFilt);
+  medData = data;
+
+  const lim = medLimits[variable] || { min:0, max:100, label:variable };
+  const vals = data.map(r=>r.valor);
+  const avg  = vals.reduce((a,b)=>a+b,0)/vals.length;
+  const mn   = Math.min(...vals); const mx = Math.max(...vals);
+  const fuera= data.filter(r=>r.valor<lim.min||r.valor>lim.max).length;
+  const std  = Math.sqrt(vals.reduce((a,b)=>a+(b-avg)**2,0)/vals.length);
+
+  document.getElementById('medKpis').innerHTML = `
+    <div class="card card-sm" style="border-left:4px solid var(--blue)"><div class="kpi-value">${avg.toFixed(1)}</div><div class="kpi-label">Promedio</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--green)"><div class="kpi-value">${mn}</div><div class="kpi-label">Mínimo</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--yellow)"><div class="kpi-value">${mx}</div><div class="kpi-label">Máximo</div></div>
+    <div class="card card-sm" style="border-left:4px solid ${fuera>0?'var(--red)':'var(--green)'}"><div class="kpi-value">${fuera}</div><div class="kpi-label">Fuera de Rango</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--dark)"><div class="kpi-value">±${std.toFixed(1)}</div><div class="kpi-label">Desv. Estándar</div></div>`;
+
+  mkChart('chartMedidor', {
+    type: 'line',
+    data: {
+      labels: data.map(r=>r.fecha),
+      datasets: [
+        { label: lim.label, data: vals, borderColor: COLORS.blue, backgroundColor: COLORS.blue+'18', tension:.3, fill:true, pointRadius: vals.map(v=>v<lim.min||v>lim.max?5:2), pointBackgroundColor: vals.map(v=>v<lim.min||v>lim.max?COLORS.red:COLORS.blue) },
+        { label: 'Límite Superior', data: Array(data.length).fill(lim.max), borderColor: COLORS.red+'80', borderDash:[6,3], pointRadius:0, fill:false, tension:0 },
+        { label: 'Límite Inferior', data: Array(data.length).fill(lim.min), borderColor: COLORS.amber+'80', borderDash:[6,3], pointRadius:0, fill:false, tension:0 },
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{font:baseFont,boxWidth:12}}}, scales:{ x:{ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45},grid:{color:gridColor}}, y:{ticks:{font:baseFont},grid:{color:gridColor}} } }
+  });
+
+  document.getElementById('tbodyMedidor').innerHTML = data.map(r => {
+    const fuera = r.valor < lim.min || r.valor > lim.max;
+    return `<tr class="${fuera?'row-alert':''}">
+      <td class="mono" style="font-size:11px">${r.fecha}</td>
+      <td><span class="badge ${r.turno==='Día'?'badge-blue':'badge-ok'}">${r.turno}</span></td>
+      <td style="font-size:12px">${r.operador.split('@')[0]}</td>
+      <td class="mono" style="font-weight:600;color:${fuera?COLORS.red:COLORS.ink}">${r.valor}</td>
+      <td>${fuera?'<span class="badge badge-alert">Fuera de rango</span>':'<span class="badge badge-ok">Normal</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// ALERTAS
+// ══════════════════════════════════════════
+function loadAlertas() {
+  const modFilt = document.getElementById('al-modulo')?.value||'';
+  const modulos = ['gasometro','digestor','compresores','calderas','antorchas','area50','area60'];
+  const alertTypes = {
+    gasometro:   ['LEL elevado','Anclajes corroídos','Guarda hidráulica baja','Gabinete falla'],
+    digestor:    ['Fuga en escotilla','Válvula con corrosión','Purga obstruida'],
+    compresores: ['Vibración anormal','Filtro saturado','Chiller falla','Tablero alarma'],
+    calderas:    ['Piloto apagado','Fuga agua','Chimenea obstruida'],
+    antorchas:   ['Llama inestable','GLP bajo 20%','Fuga en rampa'],
+    area50:      ['Manto lodo > 120cm','Presión balón baja','Rastras fallidas'],
+    area60:      ['T° entrada baja','T° salida alta','Fuga sello bomba'],
+  };
+  const alertList = [];
+  for (let i = 0; i < 40; i++) {
+    const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random()*30));
+    const mod = modulos[Math.floor(Math.random()*modulos.length)];
+    if (modFilt && mod !== modFilt) continue;
+    const types = alertTypes[mod];
+    alertList.push({
+      fecha: d.toISOString().split('T')[0],
+      turno: Math.random()>.5?'Día':'Noche',
+      modulo: mod,
+      tipo: types[Math.floor(Math.random()*types.length)],
+      valor: (Math.random()*30).toFixed(1),
+      operador: ['jgonzalez','mlopez','rperez'][Math.floor(Math.random()*3)] + '@ptas.cl',
+      obs: Math.random()>.5 ? 'Se notificó a supervisor. Monitoreo intensificado.' : '',
+      sev: Math.random()>.6 ? 'critica' : 'advertencia',
+    });
+  }
+  alertList.sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  document.getElementById('alertKpis').innerHTML = `
+    <div class="card card-sm" style="border-left:4px solid var(--red)"><div class="kpi-value">${alertList.filter(a=>a.sev==='critica').length}</div><div class="kpi-label">Críticas</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--amber)"><div class="kpi-value">${alertList.filter(a=>a.sev==='advertencia').length}</div><div class="kpi-label">Advertencias</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--blue)"><div class="kpi-value">${alertList.length}</div><div class="kpi-label">Total</div></div>
+    <div class="card card-sm" style="border-left:4px solid var(--dark)"><div class="kpi-value">${[...new Set(alertList.map(a=>a.modulo))].length}</div><div class="kpi-label">Módulos afect.</div></div>`;
+
+  const byMod = {}; modulos.forEach(m=>{ byMod[m]=alertList.filter(a=>a.modulo===m).length; });
+  mkChart('chartAlertaModulo', {
+    type:'doughnut',
+    data:{ labels:Object.keys(byMod).map(m=>m.charAt(0).toUpperCase()+m.slice(1)), datasets:[{ data:Object.values(byMod), backgroundColor:[COLORS.blue,COLORS.yellow,COLORS.green,COLORS.red,COLORS.amber,COLORS.dark,COLORS.teal], borderWidth:2 }] },
+    options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:baseFont,boxWidth:10}}} }
+  });
+
+  const byDate = {}; alertList.forEach(a=>{byDate[a.fecha]=(byDate[a.fecha]||0)+1;});
+  const sortedDates = Object.keys(byDate).sort();
+  mkChart('chartAlertaTrend',{
+    type:'bar',
+    data:{ labels:sortedDates, datasets:[{label:'Alertas',data:sortedDates.map(d=>byDate[d]),backgroundColor:COLORS.red+'aa',borderRadius:4}] },
+    options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{family:"'DM Mono'",size:9},maxRotation:45}},y:{ticks:{font:baseFont},grid:{color:gridColor}}} }
+  });
+
+  document.getElementById('tbodyAlertas').innerHTML = alertList.map(a=>`
+    <tr class="${a.sev==='critica'?'row-alert':''}">
+      <td class="mono" style="font-size:11px">${a.fecha}</td>
+      <td><span class="badge ${a.turno==='Día'?'badge-blue':'badge-ok'}">${a.turno}</span></td>
+      <td><span class="badge badge-blue">${a.modulo}</span></td>
+      <td style="font-size:12px;font-weight:500">${a.tipo}</td>
+      <td class="mono">${a.valor}</td>
+      <td style="font-size:12px">${a.operador.split('@')[0]}</td>
+      <td style="font-size:11px;color:var(--muted)">${a.obs||'—'}</td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════
+// OPERADORES
+// ══════════════════════════════════════════
+function loadOperadores() {
+  const opsList = ['jgonzalez@ptas.cl','mlopez@ptas.cl','rperez@ptas.cl','cmuñoz@ptas.cl'];
+  const stats = opsList.map(op => {
+    const n = 10 + Math.floor(Math.random()*20);
+    const alertas = Math.floor(Math.random()*8);
+    const cumpl = 80 + Math.floor(Math.random()*20);
+    return { op, turnos: n, alertas, cumplimiento: cumpl, completitud: 85+Math.floor(Math.random()*15) };
+  });
+
+  document.getElementById('opCards').innerHTML = stats.map(s=>`
+    <div class="card" style="border-top:4px solid var(--blue)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:17px">${s.op.split('@')[0]}</div>
+          <div style="font-size:11px;color:var(--muted)">${s.op}</div>
+        </div>
+        <span class="badge ${s.cumplimiento>=90?'badge-ok':s.cumplimiento>=75?'badge-warn':'badge-alert'}">${s.cumplimiento}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="text-align:center;background:var(--surface);padding:8px;border-radius:8px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:var(--blue)">${s.turnos}</div>
+          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Turnos</div>
+        </div>
+        <div style="text-align:center;background:var(--surface);padding:8px;border-radius:8px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:${s.alertas>5?COLORS.red:COLORS.amber}">${s.alertas}</div>
+          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Alertas</div>
+        </div>
+        <div style="text-align:center;background:var(--surface);padding:8px;border-radius:8px">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;color:var(--green)">${s.completitud}%</div>
+          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Completitud</div>
+        </div>
+      </div>
+      <div style="background:var(--surface);border-radius:6px;height:6px;overflow:hidden">
+        <div style="height:100%;width:${s.cumplimiento}%;background:${s.cumplimiento>=90?COLORS.green:s.cumplimiento>=75?COLORS.amber:COLORS.red};border-radius:6px;transition:width .6s"></div>
+      </div>
+    </div>`).join('');
+
+  mkChart('chartOperadores', {
+    type:'bar',
+    data:{
+      labels: stats.map(s=>s.op.split('@')[0]),
+      datasets:[
+        {label:'Turnos', data:stats.map(s=>s.turnos), backgroundColor:COLORS.blue+'cc', borderRadius:6},
+        {label:'Alertas',data:stats.map(s=>s.alertas), backgroundColor:COLORS.red+'cc', borderRadius:6},
+        {label:'Cumpl.%',data:stats.map(s=>s.cumplimiento), backgroundColor:COLORS.green+'cc', borderRadius:6},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:baseFont,boxWidth:12}}},scales:{x:{ticks:{font:baseFont}},y:{ticks:{font:baseFont},grid:{color:gridColor}}}}
+  });
+}
+
+// ══════════════════════════════════════════
+// POPULATE SELECTS
+// ══════════════════════════════════════════
+async function populateOperadorSelects() {
+  const ops = ['jgonzalez@ptas.cl','mlopez@ptas.cl','rperez@ptas.cl','cmuñoz@ptas.cl'];
+  ['h-oper','rep-op'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const existing = el.innerHTML;
+    ops.forEach(op => { el.innerHTML += `<option value="${op}">${op.split('@')[0]}</option>`; });
+  });
+}
+
+// ══════════════════════════════════════════
+// EXPORTAR CSV
+// ══════════════════════════════════════════
+function exportarCSV() {
+  if (!histAll.length) { alert('No hay datos para exportar.'); return; }
+  const cols = ['turno_token','tipo_turno','operador_nombre','created_at','scada_nivel_gasometro','scada_presion_mbar','scada_dig_temp_c','alertas','turno_cerrado'];
+  const header = cols.join(',');
+  const rows = histAll.map(r => cols.map(c => '"'+(r[c]??'')+'"').join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'rondasync_historicos.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportarCSVMedidor() {
+  if (!medData.length) { alert('Carga un medidor primero.'); return; }
+  const header = 'fecha,turno,operador,valor';
+  const rows = medData.map(r => `${r.fecha},${r.turno},${r.operador},${r.valor}`);
+  const csv = [header,...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='medidor_historico.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportarExcel() {
+  // sin librería xlsx disponible: descargar CSV con extensión .xls (compatible con Excel)
+  exportarCSV();
+  setTimeout(()=>alert('💡 Para Excel nativo instala la librería SheetJS. Mientras tanto se descarga como CSV compatible con Excel.'),100);
+}
+
+// ══════════════════════════════════════════
+// REPORTES
+// ══════════════════════════════════════════
+let pendingReporte = null;
+function generarReporte(tipo, formato) {
+  if (formato === 'pdf') { window.print(); return; }
+  if (formato === 'email') {
+    pendingReporte = tipo;
+    const m = document.getElementById('emailModal');
+    m.style.display = 'flex';
+    return;
+  }
+  if (formato === 'excel') { exportarCSV(); return; }
+}
+
+function cerrarEmailModal() {
+  document.getElementById('emailModal').style.display = 'none';
+}
+
+function enviarEmail() {
+  const dest    = document.getElementById('emailDest').value;
+  const subject = document.getElementById('emailSubject').value;
+  const nota    = document.getElementById('emailNota').value;
+  if (!dest) { alert('Ingresa al menos un destinatario.'); return; }
+  // En producción aquí iría una llamada a una Edge Function de Supabase
+  // que usaría Resend/SendGrid con el PDF adjunto.
+  alert(`✉️ Reporte enviado a: ${dest}\n\nEn producción esto disparará una Edge Function de Supabase con el PDF adjunto.\n\nAsunto: ${subject}`);
+  cerrarEmailModal();
+}
+
+// ══════════════════════════════════════════
+// DETALLE TURNO
+// ══════════════════════════════════════════
+function verDetalle(id) {
+  const t = histAll.find(x=>x.id===id) || {};
+  document.getElementById('detailTitle').textContent = 'Turno: ' + (t.turno_token||id);
+  document.getElementById('detailContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      ${Object.entries({ 'Operador':t.operador_nombre, 'Tipo':t.tipo_turno, 'Inicio':t.created_at?.split('T').join(' ')?.slice(0,16), 'Fin':t.hora_fin?.split('T').join(' ')?.slice(0,16)||'—', 'Cerrado':t.turno_cerrado?'Sí':'No', 'Alertas':t.alertas||0 }).map(([k,v])=>`
+        <div style="background:var(--surface);padding:10px 12px;border-radius:10px">
+          <div style="font-size:9px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">${k}</div>
+          <div style="font-size:13px;font-weight:600">${v??'—'}</div>
+        </div>`).join('')}
+    </div>
+    <div class="sep"></div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px">Datos SCADA</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+      ${[['Nivel Gas.', t.scada_nivel_gasometro, '%'], ['Pres. Gas.', t.scada_presion_mbar, 'mb'], ['T° Dig.', t.scada_dig_temp_c, '°C'], ['Pres. Dig.', t.scada_dig_presion_mbar, 'mb'], ['Flujo Biogás', t.scada_flujo_biogas_nm3h, 'Nm³/h'], ['Flujo Comp.', t.scada_flujo_biogas_nm3h, '']].map(([l,v,u])=>`
+        <div style="background:var(--surface);padding:8px;border-radius:8px;text-align:center">
+          <div style="font-size:9px;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase">${l}</div>
+          <div class="mono" style="font-size:14px;font-weight:600;margin-top:2px">${v??'—'}${v&&u?' '+u:''}</div>
+        </div>`).join('')}
+    </div>`;
+  document.getElementById('detailModal').style.display = 'flex';
+}
+
+function cerrarDetalle() {
+  document.getElementById('detailModal').style.display = 'none';
+}
+
+// close modal on outside click
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) cerrarDetalle();
+});
+document.getElementById('emailModal').addEventListener('click', function(e) {
+  if (e.target === this) cerrarEmailModal();
+});
+</script>
+</body>
+</html>
