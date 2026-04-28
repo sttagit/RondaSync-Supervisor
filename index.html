@@ -1692,7 +1692,6 @@ function App() {
         </div>
     );
 
-    if (vista==='dashboard')     return <VistaDashboard onBack={()=>setVista('hub')} />;
     if (vista==='traspaso')      return <VistaTraspaso prevTurno={prevData.turno} prevGasometro={prevData.gasometro} prevDigestor={prevData.digestor} prevCompresores={prevData.compresores} prevCalderas={prevData.calderas} prevAntorchas={prevData.antorchas} prevA50={prevData.area50} prevA60={prevData.area60} prevA70={prevData.area70} onBack={()=>setVista('hub')} />;
     if (vista==='scada')         return <>{isSaving&&<Loader/>}<VistaScada datosGuardados={currentScada} prevData={prevData.turno} onSave={handleSaveScada} onBack={()=>setVista('hub')} /></>;
     if (vista==='riesgos')       return <VistaRiesgos modulo={moduloDestino} onComplete={()=>setVista(moduloDestino)} onBack={()=>setVista('hub')} />;
@@ -1764,9 +1763,6 @@ function App() {
 
             {/* Accesos principales */}
             <div className="space-y-3">
-                <button onClick={()=>setVista('dashboard')} className="w-full bg-white border-2 border-aguas-blue text-aguas-blue font-black py-4 rounded-2xl shadow-sm uppercase tracking-widest text-xs flex justify-center items-center gap-2 hover:bg-blue-50 transition-colors active:scale-95">
-                    <span className="text-lg">📊</span> Módulo Supervisión y KPIs
-                </button>
                 <button onClick={()=>setVista('traspaso')} className="w-full flex justify-between items-center p-5 rounded-2xl border-2 bg-white border-aguas-yellow hover:border-amber-400 transition-all shadow-sm active:scale-95">
                     <div className="flex items-center gap-4"><span className="text-2xl">📋</span><span className="font-black text-sm uppercase text-gray-800">Traspaso de Turno</span></div>
                     <span className="text-[10px] bg-aguas-yellow text-amber-900 px-3 py-1 rounded-lg font-black uppercase">Leer</span>
