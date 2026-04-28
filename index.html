@@ -303,68 +303,6 @@ function VistaScada({ datosGuardados, prevData, onSave, onBack }) {
 }
 
 // ─────────────────────────────────────────────
-// VISTA DASHBOARD
-// ─────────────────────────────────────────────
-function VistaDashboard({ onBack }) {
-    const [data, setData]       = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        sb.from('registro_turnos').select('*').order('created_at', { ascending: false }).limit(12)
-            .then(({ data: turnos, error }) => {
-                if (!error && turnos) setData(turnos);
-                setLoading(false);
-            });
-    }, []);
-
-    return (
-        <div className="p-4 max-w-md mx-auto min-h-screen space-y-4 pb-20 fade-in">
-            <div className="bg-aguas-blue p-5 rounded-2xl text-white shadow-xl flex items-center justify-between sticky top-0 z-20">
-                <div className="flex items-center gap-3"><span className="text-2xl">📊</span><h2 className="text-lg font-black uppercase tracking-wide">Supervisión</h2></div>
-                <button onClick={onBack} className="bg-white/20 hover:bg-white/30 text-xs px-3 py-1 rounded-full font-bold transition-colors">Volver</button>
-            </div>
-            {loading ? (
-                <div className="text-center py-20 text-gray-400 font-bold">Cargando historial...</div>
-            ) : data.length === 0 ? (
-                <div className="text-center py-20 text-gray-400 font-bold">Sin registros aún.</div>
-            ) : (
-                <div className="space-y-3">
-                    {data.map(t => (
-                        <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <p className="text-xs font-black text-gray-800">{new Date(t.created_at).toLocaleString('es-CL',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
-                                    <p className="text-[10px] text-aguas-blue font-bold mt-0.5">{t.operador_nombre}</p>
-                                </div>
-                                <span className={`text-[9px] font-black uppercase px-3 py-1 rounded-full ${t.tipo_turno==='Día'?'bg-blue-100 text-blue-700':'bg-indigo-100 text-indigo-700'}`}>{t.tipo_turno}</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 mb-3">
-                                {[
-                                    { l:'Gas. %',  v: t.scada_nivel_gasometro, u:'%' },
-                                    { l:'Pres. Dig.', v: t.scada_dig_presion_mbar, u:'mb' },
-                                    { l:'T° Dig.', v: t.scada_dig_temp_c, u:'°C' },
-                                ].map(({l,v,u}) => (
-                                    <div key={l} className="bg-gray-50 p-2 rounded-xl text-center">
-                                        <p className="text-[8px] text-gray-400 font-bold uppercase">{l}</p>
-                                        <p className="font-black text-gray-800 text-sm">{v ?? '—'}{v ? ' '+u : ''}</p>
-                                    </div>
-                                ))}
-                            </div>
-                            {t.setpoints_ajustados && (
-                                <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
-                                    <p className="text-[9px] text-aguas-blue font-black uppercase mb-1">Novedades</p>
-                                    <p className="text-xs text-blue-900 font-medium italic">"{t.setpoints_ajustados}"</p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-// ─────────────────────────────────────────────
 // RIESGOS (P.O.W.R.A.)
 // ─────────────────────────────────────────────
 const ATEX_DATA = {
