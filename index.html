@@ -1631,26 +1631,70 @@ function enviarEmail() {
 }
 
 // ══════════════════════════════════════════
-// DETALLE TURNO
+// DETALLE TURNO — muestra operador por módulo
 // ══════════════════════════════════════════
-function verDetalle(id) {
+async function verDetalle(id) {
   const t = histAll.find(x=>x.id===id) || {};
   document.getElementById('detailTitle').textContent = 'Turno: ' + (t.turno_token||id);
+
+  // Consultar operador de cada módulo para este turno
+  let modOps = {};
+  if (t.turno_token) {
+    try {
+      const tablasMod = [
+        ['inspeccion_gasometro',  'Gasómetro'],
+        ['inspeccion_digestor',   'Digestor'],
+        ['inspeccion_compresores','Compresores'],
+        ['inspeccion_calderas',   'Calderas'],
+        ['inspeccion_antorchas',  'Antorchas'],
+        ['inspeccion_area50',     'Área 50'],
+        ['inspeccion_area60',     'Área 60'],
+        ['inspeccion_area70',     'Área 70'],
+        ['inspeccion_entrega',    'Stock/Cargos'],
+        ['inspeccion_totalizadores','Totalizadores'],
+      ];
+      const queries = tablasMod.map(([tabla]) =>
+        sb.from(tabla).select('operador_nombre').eq('turno_token', t.turno_token).maybeSingle()
+      );
+      const results = await Promise.all(queries);
+      tablasMod.forEach(([,nombre], i) => {
+        if (results[i].data?.operador_nombre) {
+          modOps[nombre] = results[i].data.operador_nombre.split('@')[0];
+        }
+      });
+    } catch(e) { console.error(e); }
+  }
+
+  // Agrupar operadores únicos del turno
+  const operadores = [...new Set(Object.values(modOps))];
+
   document.getElementById('detailContent').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       ${Object.entries({
-        'Operador': t.operador_nombre,
-        'Tipo':     t.tipo_turno,
-        'Inicio':   t.created_at?.split('T').join(' ')?.slice(0,16),
-        'Fin':      t.hora_fin?.split('T').join(' ')?.slice(0,16)||'—',
-        'Cerrado':  t.turno_cerrado?'Sí':'No',
-        'Alertas':  t.alertas||0
+        'Operador SCADA': t.operador_nombre,
+        'Tipo':           t.tipo_turno,
+        'Inicio':         t.created_at?.split('T').join(' ')?.slice(0,16),
+        'Fin':            t.hora_fin?.split('T').join(' ')?.slice(0,16)||'—',
+        'Cerrado':        t.turno_cerrado?'Sí':'No',
+        'Participantes':  operadores.length > 0 ? operadores.join(', ') : '—',
       }).map(([k,v])=>`
         <div style="background:var(--surface);padding:10px 12px;border-radius:10px">
           <div style="font-size:9px;font-family:'Lato',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">${k}</div>
           <div style="font-size:13px;font-weight:600">${v??'—'}</div>
         </div>`).join('')}
     </div>
+
+    ${Object.keys(modOps).length > 0 ? `
+    <div class="sep"></div>
+    <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px">Operador por Módulo</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+      ${Object.entries(modOps).map(([mod, op]) => `
+        <div style="background:var(--surface);padding:8px 12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase">${mod}</div>
+          <div style="font-size:11px;font-weight:700;color:var(--green);background:#dcfce7;padding:2px 8px;border-radius:6px">${op}</div>
+        </div>`).join('')}
+    </div>` : ''}
+
     <div class="sep"></div>
     <div style="font-family:'Lato',sans-serif;font-weight:800;font-size:14px;margin-bottom:10px">Datos SCADA Iniciales</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
